@@ -1,6 +1,9 @@
 var app = require('http').createServer(resposta); // Criando o servidor
 var fs = require('fs'); // Sistema de arquivos
 var io = require('socket.io')(app); // Socket.IO
+
+import './src/model/User';
+
 var usuarios = []; // Lista de usuários
 var ultimas_mensagens = []; // Lista com ultimas mensagens enviadas no chat
 
