@@ -10,8 +10,8 @@ Troca de mensagens com criptografia pelo processo Encrypt-then-Mac.
 - Utilizando sockets para troca de mensagens.
 - Troca de mensagens sendo feita de forma cifrada, pelo processo Encrypt-then-Mac.
   - Enviando: Usuário destino, bloco de mensagem e key wrapped.
-  - Cifragem feita usando *AES no modo CTR com chave de 128 bits*.
-  - MAC sendo feito usando HMAC (*HMacSHA256*).
+  - Cifragem feita usando _AES no modo CTR com chave de 128 bits_.
+  - MAC sendo feito usando HMAC (_HMacSHA256_).
 - A mensagem é cifrada e então enviada. Ao receber mensagens, ela é decifrada.
 - Não pode utilizar chave nem IV armazenados em variáveis de memória, simulando máquinas diferentes.
 - Para gerar chaves/IVs, usar PBKDF2.
@@ -22,8 +22,14 @@ Troca de mensagens com criptografia pelo processo Encrypt-then-Mac.
 
 Ter `node` instalado. O programa foi feito utilizando o node v12.22.3.
 
+Iniciar o repositório, instalando as dependências:
+
+`npm install`
+
 Executar o seguinte comando para iniciar o servidor:
 
 `node app.js`
 
 Após isso, basta acessar pelo navegador `localhost:3000` para começar a utilização.
+
+Rodar servidor (`npm run debug`), iniciar script no vscode (`Node: Nodemon`) e vincular os dois.
