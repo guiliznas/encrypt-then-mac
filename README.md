@@ -32,4 +32,15 @@ Executar o seguinte comando para iniciar o servidor:
 
 Após isso, basta acessar pelo navegador `localhost:3000` para começar a utilização.
 
+### Rodar pelo script
+
+Sem hot reload:
+
+`npm run start`
+
+Com hot reload:
+
+`npm run dev`
+### Rodar com debug
+
 Rodar servidor (`npm run debug`), iniciar script no vscode (`Node: Nodemon`) e vincular os dois.

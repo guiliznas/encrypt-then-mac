@@ -59,6 +59,7 @@ class User {
   }
 }
 
+// Para os testes
 // if (module) {
 //   module.exports = User;
 // }
