@@ -1,19 +1,16 @@
 var app = require("http").createServer(resposta); // Criando o servidor
 var fs = require("fs"); // Sistema de arquivos
 var io = require("socket.io")(app); // Socket.IO
+var moment = require('moment');
 
-var usuarios = []; // Lista de usuários
-var ultimas_mensagens = []; // Lista com ultimas mensagens enviadas no chat
+var usuarios = {}; // Dicionario de usuários
 
 const _PORT_ = 3000;
 app.listen(_PORT_);
 
-
-
 var CryptoJS = require('crypto-js');
 var salt = CryptoJS.lib.WordArray.random(128 / 8);
-console.log("Salt: ", salt);
-var key128Bits = CryptoJS.PBKDF2("Secret Passphrase", salt, {
+var key128Bits = CryptoJS.PBKDF2("senha super secreta", salt, {
   keySize: 128 / 32
 });
 
@@ -46,28 +43,19 @@ function resposta(req, res) {
 io.on("connection", function (socket) {
   // Método de resposta ao evento de entrar
   socket.on("entrar", function (nome, callback) {
-    if (!(nome in usuarios)) {
+    if (!(nome in Object.keys(usuarios))) {
       const user = { nome };
       user.K1 = global.K1;
       user.K2 = global.K2;
       socket.user = user;
-      usuarios[user.nome] = socket; // Adicionadno o nome de usuário a lista armazenada no servidor
+      usuarios[user.nome] = socket; // Adicionadno o nome de usuário ao dicionario armazenada no servidor
 
-      // Enviar para o usuário ingressante as ultimas mensagens armazenadas.
-      for (indice in ultimas_mensagens) {
-        socket.emit("atualizar mensagens", ultimas_mensagens[indice]);
-      }
-
-      var mensagem =
-        "[ " + pegarDataAtual() + " ] " + nome + " acabou de entrar na sala";
+      var mensagem = `[${pegarDataAtual()}] ${nome} entrou na sala`;
       var obj_mensagem = { msg: mensagem, tipo: "sistema" };
-
-      io.sockets.emit("atualizar usuarios", Object.keys(usuarios)); // Enviando a nova lista de usuários
-
-      armazenaMensagem(obj_mensagem); // Guardando a mensagem na lista de histórico
-
+      
       callback(user);
 
+      io.sockets.emit("atualizar usuarios", Object.keys(usuarios)); // Enviando a nova lista de usuários
       io.sockets.emit("atualizar mensagens", obj_mensagem); // Enviando mensagem anunciando entrada do novo usuário
     } else {
       callback(null);
@@ -75,7 +63,6 @@ io.on("connection", function (socket) {
   });
 
   socket.on("enviar mensagem", function ({usuario, mensagem, chave}, callback) {
-    var mensagem_enviada = mensagem;
     var usuario = usuario.nome;
     if (usuario == null) usuario = ""; // Caso não tenha um usuário, a mensagem será enviada para todos da sala
 
@@ -85,25 +72,13 @@ io.on("connection", function (socket) {
       chave,
     }
 
-    mensagem_enviada =
-      "[ " +
-      pegarDataAtual() +
-      " ] " +
-      socket.user.nome +
-      " diz: " +
-      mensagem_enviada;
-    var obj_mensagem = { msg: mensagem_enviada, tipo: "" };
-
     if (usuario == "") {
-      // io.sockets.emit("atualizar mensagens", obj_mensagem);
       io.sockets.emit("atualizar mensagens", msg);
-      armazenaMensagem(obj_mensagem); // Armazenando a mensagem
     } else {
-      // obj_mensagem.tipo = "privada";
-      // socket.emit("atualizar mensagens", obj_mensagem); // Emitindo a mensagem para o usuário que a enviou
-      // usuarios[usuario].emit("atualizar mensagens", obj_mensagem); // Emitindo a mensagem para o usuário escolhido
       msg.tipo = "privada";
+      // Enviando a mensagem para o usuario origem;
       socket.emit("atualizar mensagens", msg);
+      // Enviando a mensagem para o usuario destino;
       usuarios[usuario].emit("atualizar mensagens", msg);
     }
 
@@ -116,8 +91,7 @@ io.on("connection", function (socket) {
       return;
     }
     delete usuarios[socket.user.nome];
-    var mensagem =
-      "[ " + pegarDataAtual() + " ] " + socket.user.nome + " saiu da sala";
+    var mensagem = `[${pegarDataAtual()}] ${socket.user.nome} saiu da sala`;
     var obj_mensagem = { msg: mensagem, tipo: "sistema" };
 
     // No caso da saída de um usuário, a lista de usuários é atualizada
@@ -125,33 +99,10 @@ io.on("connection", function (socket) {
     io.sockets.emit("atualizar usuarios", Object.keys(usuarios));
     io.sockets.emit("atualizar mensagens", obj_mensagem);
 
-    armazenaMensagem(obj_mensagem);
   });
 });
 
 // Função para apresentar uma String com a data e hora em formato DD/MM/AAAA HH:MM:SS
 function pegarDataAtual() {
-  var dataAtual = new Date();
-  var dia = (dataAtual.getDate() < 10 ? "0" : "") + dataAtual.getDate();
-  var mes =
-    (dataAtual.getMonth() + 1 < 10 ? "0" : "") + (dataAtual.getMonth() + 1);
-  var ano = dataAtual.getFullYear();
-  var hora = (dataAtual.getHours() < 10 ? "0" : "") + dataAtual.getHours();
-  var minuto =
-    (dataAtual.getMinutes() < 10 ? "0" : "") + dataAtual.getMinutes();
-  var segundo =
-    (dataAtual.getSeconds() < 10 ? "0" : "") + dataAtual.getSeconds();
-
-  var dataFormatada =
-    dia + "/" + mes + "/" + ano + " " + hora + ":" + minuto + ":" + segundo;
-  return dataFormatada;
-}
-
-// Função para guardar as mensagens e seu tipo na variável de ultimas mensagens
-function armazenaMensagem(mensagem) {
-  if (ultimas_mensagens.length > 5) {
-    ultimas_mensagens.shift();
-  }
-
-  ultimas_mensagens.push(mensagem);
+  return moment().format('DD/MM/YYYY HH:mm')
 }
