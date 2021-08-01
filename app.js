@@ -8,12 +8,19 @@ var ultimas_mensagens = []; // Lista com ultimas mensagens enviadas no chat
 const _PORT_ = 3000;
 app.listen(_PORT_);
 
-global.K1 = "K1";
 
-// var CryptoJS = require('crypto-js');
-// CryptoJS.PBKDF2("");
 
-global.K2 = "K2"; // Chave para AES CTR com 128 bits;
+var CryptoJS = require('crypto-js');
+var salt = CryptoJS.lib.WordArray.random(128 / 8);
+console.log("Salt: ", salt);
+var key128Bits = CryptoJS.PBKDF2("Secret Passphrase", salt, {
+  keySize: 128 / 32
+});
+
+global.K1 = salt.toString(); //"K1";
+console.log("K1", global.K1);
+global.K2 = key128Bits.toString(); //"K2"; // Chave para AES CTR com 128 bits;
+console.log("K2", global.K2);
 
 console.log(`Aplicação está em execução na port ${_PORT_}`);
 
