@@ -53,6 +53,7 @@ form input[type='submit']{
 
 #historico_mensagens{
 	border-right: 0;
+	overflow-y: auto;
 }
 #lista_usuarios{
 border-left: 1px solid #45C5BF;

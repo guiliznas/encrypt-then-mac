@@ -2,8 +2,6 @@ var app = require("http").createServer(resposta); // Criando o servidor
 var fs = require("fs"); // Sistema de arquivos
 var io = require("socket.io")(app); // Socket.IO
 
-var User = require("./src/model/User");
-
 var usuarios = []; // Lista de usuários
 var ultimas_mensagens = []; // Lista com ultimas mensagens enviadas no chat
 
@@ -11,7 +9,11 @@ const _PORT_ = 3000;
 app.listen(_PORT_);
 
 global.K1 = "K1";
-global.K2 = "K2";
+
+// var CryptoJS = require('crypto-js');
+// CryptoJS.PBKDF2("");
+
+global.K2 = "K2"; // Chave para AES CTR com 128 bits;
 
 console.log(`Aplicação está em execução na port ${_PORT_}`);
 
@@ -38,7 +40,9 @@ io.on("connection", function (socket) {
   // Método de resposta ao evento de entrar
   socket.on("entrar", function (nome, callback) {
     if (!(nome in usuarios)) {
-      const user = new User({ nome });
+      const user = { nome };
+      user.K1 = global.K1;
+      user.K2 = global.K2;
       socket.user = user;
       usuarios[user.nome] = socket; // Adicionadno o nome de usuário a lista armazenada no servidor
 
@@ -52,20 +56,27 @@ io.on("connection", function (socket) {
       var obj_mensagem = { msg: mensagem, tipo: "sistema" };
 
       io.sockets.emit("atualizar usuarios", Object.keys(usuarios)); // Enviando a nova lista de usuários
-      io.sockets.emit("atualizar mensagens", obj_mensagem); // Enviando mensagem anunciando entrada do novo usuário
 
       armazenaMensagem(obj_mensagem); // Guardando a mensagem na lista de histórico
 
       callback(user);
+
+      io.sockets.emit("atualizar mensagens", obj_mensagem); // Enviando mensagem anunciando entrada do novo usuário
     } else {
       callback(null);
     }
   });
 
-  socket.on("enviar mensagem", function (dados, callback) {
-    var mensagem_enviada = dados.msg;
-    var usuario = dados.usu;
+  socket.on("enviar mensagem", function ({usuario, mensagem, chave}, callback) {
+    var mensagem_enviada = mensagem;
+    var usuario = usuario.nome;
     if (usuario == null) usuario = ""; // Caso não tenha um usuário, a mensagem será enviada para todos da sala
+
+    const msg = {
+      usuario: {nome: socket.user.nome},
+      mensagem,
+      chave,
+    }
 
     mensagem_enviada =
       "[ " +
@@ -77,12 +88,16 @@ io.on("connection", function (socket) {
     var obj_mensagem = { msg: mensagem_enviada, tipo: "" };
 
     if (usuario == "") {
-      io.sockets.emit("atualizar mensagens", obj_mensagem);
+      // io.sockets.emit("atualizar mensagens", obj_mensagem);
+      io.sockets.emit("atualizar mensagens", msg);
       armazenaMensagem(obj_mensagem); // Armazenando a mensagem
     } else {
-      obj_mensagem.tipo = "privada";
-      socket.emit("atualizar mensagens", obj_mensagem); // Emitindo a mensagem para o usuário que a enviou
-      usuarios[usuario].emit("atualizar mensagens", obj_mensagem); // Emitindo a mensagem para o usuário escolhido
+      // obj_mensagem.tipo = "privada";
+      // socket.emit("atualizar mensagens", obj_mensagem); // Emitindo a mensagem para o usuário que a enviou
+      // usuarios[usuario].emit("atualizar mensagens", obj_mensagem); // Emitindo a mensagem para o usuário escolhido
+      msg.tipo = "privada";
+      socket.emit("atualizar mensagens", msg);
+      usuarios[usuario].emit("atualizar mensagens", msg);
     }
 
     callback();
