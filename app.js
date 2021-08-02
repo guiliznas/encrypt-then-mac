@@ -12,7 +12,7 @@ var usuarios = {};
 var CryptoJS = require('crypto-js');
 global.keyMaster = CryptoJS.MD5("senha super secreta").toString();
 
-const _PORT_ = 3000;
+const _PORT_ = process.env.PORT || 3000;
 app.listen(_PORT_);
 console.log(`Aplicação está em execução na port ${_PORT_}`);
 
