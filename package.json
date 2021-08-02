@@ -20,5 +20,8 @@
     "test": "jest"
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "engines": {
+    "node": "12.22.3"
+  }
 }
