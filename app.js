@@ -4,7 +4,6 @@ var app = require("http").createServer(resposta);
 var fs = require("fs");
 // Socket.IO
 var io = require("socket.io")(app);
-var moment = require('moment');
 
 // Dicionario de usuários
 var usuarios = {};
@@ -108,5 +107,5 @@ io.on("connection", function (socket) {
 
 // Função para apresentar uma String com a data e hora em formato DD/MM/AAAA HH:mm
 function pegarDataAtual() {
-  return moment().format('DD/MM/YYYY HH:mm')
+  return new Date().toLocaleString('pt-BR')
 }
