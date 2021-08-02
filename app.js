@@ -1,24 +1,19 @@
-var app = require("http").createServer(resposta); // Criando o servidor
-var fs = require("fs"); // Sistema de arquivos
-var io = require("socket.io")(app); // Socket.IO
+// Criando o servidor
+var app = require("http").createServer(resposta);
+// Sistema de arquivos
+var fs = require("fs");
+// Socket.IO
+var io = require("socket.io")(app);
 var moment = require('moment');
 
-var usuarios = {}; // Dicionario de usuários
+// Dicionario de usuários
+var usuarios = {};
+// Declaracao da chave principal
+var CryptoJS = require('crypto-js');
+global.keyMaster = CryptoJS.MD5("senha super secreta").toString();
 
 const _PORT_ = 3000;
 app.listen(_PORT_);
-
-var CryptoJS = require('crypto-js');
-var salt = CryptoJS.lib.WordArray.random(128 / 8);
-var key128Bits = CryptoJS.PBKDF2("senha super secreta", salt, {
-  keySize: 128 / 32
-});
-
-global.K1 = salt.toString(); //"K1";
-console.log("K1", global.K1);
-global.K2 = key128Bits.toString(); //"K2"; // Chave para AES CTR com 128 bits;
-console.log("K2", global.K2);
-
 console.log(`Aplicação está em execução na port ${_PORT_}`);
 
 // Função principal de resposta as requisições do servidor
@@ -43,36 +38,43 @@ function resposta(req, res) {
 io.on("connection", function (socket) {
   // Método de resposta ao evento de entrar
   socket.on("entrar", function (nome, callback) {
+    // Verificar se o usuario nao esta logado
     if (!(nome in Object.keys(usuarios))) {
-      const user = { nome };
-      user.K1 = global.K1;
-      user.K2 = global.K2;
-      socket.user = user;
-      usuarios[user.nome] = socket; // Adicionadno o nome de usuário ao dicionario armazenada no servidor
+      // Salvando nome do usuario no socket
+      socket.nome = nome;
+      // Adicionadno o socket do usuário ao dicionario armazenada no servidor
+      usuarios[nome] = socket;
 
+      // Mensagem de boas vindas
       var mensagem = `[${pegarDataAtual()}] ${nome} entrou na sala`;
       var obj_mensagem = { msg: mensagem, tipo: "sistema" };
       
-      callback(user);
+      // Retonar usuario
+      callback({nome, keyMaster: global.keyMaster});
 
-      io.sockets.emit("atualizar usuarios", Object.keys(usuarios)); // Enviando a nova lista de usuários
-      io.sockets.emit("atualizar mensagens", obj_mensagem); // Enviando mensagem anunciando entrada do novo usuário
+      // Atualizar lista de usuarios online
+      io.sockets.emit("atualizar usuarios", Object.keys(usuarios));
+      // Enviar mensagem de boas vindas
+      io.sockets.emit("atualizar mensagens", obj_mensagem);
     } else {
+      // Deu ruim
       callback(null);
     }
   });
 
   socket.on("enviar mensagem", function ({usuario, mensagem, chave}, callback) {
-    var usuario = usuario.nome;
-    if (usuario == null) usuario = ""; // Caso não tenha um usuário, a mensagem será enviada para todos da sala
+    // Caso não tenha um usuário, a mensagem será enviada para todos da sala
+    var usuario = usuario;
+    if (usuario == null) usuario = "";
 
     const msg = {
-      usuario: {nome: socket.user.nome},
+      usuario: socket.nome,
       mensagem,
       chave,
     }
 
     if (usuario == "") {
+      // Enviar mensagem para todo mundo
       io.sockets.emit("atualizar mensagens", msg);
     } else {
       msg.tipo = "privada";
@@ -86,23 +88,25 @@ io.on("connection", function (socket) {
   });
 
   socket.on("disconnect", function () {
-    if (!socket.user) {
+    if (!socket.nome) {
       console.log("Usuário não encontrado para desconectar.");
       return;
     }
-    delete usuarios[socket.user.nome];
-    var mensagem = `[${pegarDataAtual()}] ${socket.user.nome} saiu da sala`;
+    // Remover usuario
+    delete usuarios[socket.nome];
+    // Avisar que ele saiu
+    var mensagem = `[${pegarDataAtual()}] ${socket.nome} saiu da sala`;
     var obj_mensagem = { msg: mensagem, tipo: "sistema" };
 
-    // No caso da saída de um usuário, a lista de usuários é atualizada
-    // junto de um aviso em mensagem para os participantes da sala
+    // Atualizar lista de usuarios
     io.sockets.emit("atualizar usuarios", Object.keys(usuarios));
+    // Enviar mensagem de que saiu
     io.sockets.emit("atualizar mensagens", obj_mensagem);
 
   });
 });
 
-// Função para apresentar uma String com a data e hora em formato DD/MM/AAAA HH:MM:SS
+// Função para apresentar uma String com a data e hora em formato DD/MM/AAAA HH:mm
 function pegarDataAtual() {
   return moment().format('DD/MM/YYYY HH:mm')
 }

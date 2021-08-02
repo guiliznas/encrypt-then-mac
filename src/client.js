@@ -1,18 +1,20 @@
 var socket = io.connect();
 
 // Ao enviar uma mensagem
-$("form#chat").submit(function (e) {
+$("form#chat").submit(async function (e) {
   e.preventDefault();
 
   var mensagem = $(this).find("#texto_mensagem").val();
   if (!mensagem) {
     return
   }
-  var usuario = $("#lista_usuarios").val(); // Usuário selecionado na lista lateral direita
+  // Usuário selecionado na lista lateral direita
+  var usuario = $("#lista_usuarios").val();
 
+  // Montar pacote para enviar mensagem
+  const enviar = await window.user.enviarMensagem(usuario, mensagem);
   // Evento acionado no servidor para o envio da mensagem
   // junto com o nome do usuário selecionado da lista
-  const enviar = window.user.enviarMensagem(usuario, mensagem);
   socket.emit("enviar mensagem", enviar, function () {
     $("form#chat #texto_mensagem").val("");
   });
@@ -20,10 +22,11 @@ $("form#chat").submit(function (e) {
 
 // Resposta ao envio de mensagens do servidor
 socket.on("atualizar mensagens", function (dados) {
+  // Verifica se eh uma mensagem cifrada ou nao
   let result = dados.chave ? window.user.validarMensagem(dados) : dados.msg;
   if (result) {
-    if (dados.usuario && dados.usuario.nome) {
-      result = formatarMensagem({usuario: dados.usuario.nome, mensagem: result})
+    if (dados.usuario) {
+      result = formatarMensagem({usuario: dados.usuario, mensagem: result})
     }
     var mensagem_formatada = $("<p />").text(result).addClass(dados.tipo);
     $("#historico_mensagens").append(mensagem_formatada);
@@ -36,10 +39,11 @@ socket.on("atualizar mensagens", function (dados) {
 $("form#login").submit(function (e) {
   e.preventDefault();
 
-  // Evento enviado quando o usuário insere um apelido
-  socket.emit("entrar", $(this).find("#apelido").val(), function (user) {
-    if (user) {
-      window.user = new User(user);
+  // Evento enviado quando o usuário insere um nome para entrar
+  socket.emit("entrar", $(this).find("#apelido").val(), function ({nome, keyMaster}) {
+    if (nome) {
+      // Instancia classe do usuario
+      window.user = new User({nome, keyMaster});
       // Caso não exista nenhum usuário com o mesmo nome, o painel principal é exibido
       $("#acesso_usuario").hide();
       $("#sala_chat").show();
@@ -52,7 +56,7 @@ $("form#login").submit(function (e) {
 });
 
 // Quando servidor enviar uma nova lista de usuários
-// o select é limpo e reinserida a opção Todos
+// a lista é limpa e reinserida a opção Todos
 // junto de toda a lista de usuários.
 socket.on("atualizar usuarios", function (usuarios) {
   $("#lista_usuarios").empty();
@@ -63,10 +67,12 @@ socket.on("atualizar usuarios", function (usuarios) {
   });
 });
 
+// Formatar a mensagem para o padrao, conforme dados
 function formatarMensagem({usuario, mensagem}) {
   return `[${moment().format("DD/MM/YYYY HH:mm")}] ${usuario}: ${mensagem}`
 }
 
+// Manter o chat na parte inferior (ultima mensagem)
 function scrollBottom() {
   var element = document.getElementById("historico_mensagens");
   element.scrollTop = element.scrollHeight;
